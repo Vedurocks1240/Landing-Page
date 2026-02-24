@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vedansh Jain | Creative Technologist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --cursor-size: 20px;
+            --cursor-hover-size: 80px;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #050505;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        h1, h2, h3, .display-font {
+            font-family: 'Syne', sans-serif;
+        }
+
+        /* Custom Cursor */
+        #cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--cursor-size);
+            height: var(--cursor-size);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, background-color 0.3s;
+            mix-blend-mode: difference;
+        }
+
+        #cursor.hovered {
+            width: var(--cursor-hover-size);
+            height: var(--cursor-hover-size);
+            background-color: rgba(255, 255, 255, 1);
+            border-color: transparent;
+        }
+
+        /* Noise Overlay */
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9000;
+            opacity: 0.05;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAGFBMVEUAAAA5OTkAAABMTExERERmZmYzMzMyMjJec5MzAAAACHRSTlMAMwA1MzMzM7O0s14AAABJSURBVDjLY2AYBaNg2AJGJiZmRhQ+MxOaGjY2RjQ1jGhqGJHUQGhiNjY2RjY2NjY2RjY2NjY2RjY2NjY2RjY2NjY2RjY2NjY2RgUMAAB8Hw/xlE8g1AAAAABJRU5ErkJggg==');
+        }
+
+        /* WebGL Canvas */
+        #hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .text-outline {
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+            color: transparent;
+            transition: all 0.5s ease;
+        }
+
+        .text-outline:hover {
+            color: white;
+            -webkit-text-stroke: 0px;
+        }
+
+        .magnetic-btn {
+            transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        /* Form Styles */
+        .form-input:focus {
+            outline: none;
+            border-color: white;
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Success/Error Messages */
+        .form-message {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .form-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Abstract shape animation */
+        @keyframes morph {
+            0% { border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
+            50% { border-radius: 30% 60% 70% 40%/50% 60% 30% 60%; }
+            100% { border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
+        }
+
+        .morph-shape {
+            animation: morph 8s ease-in-out infinite;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-white selection:text-black">
+
+    <!-- Noise Texture -->
+    <div class="noise"></div>
+
+    <!-- Custom Cursor -->
+    <div id="cursor"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 px-6 py-6 flex justify-between items-center mix-blend-difference">
+        <a href="#" class="text-2xl font-bold tracking-tighter hover-trigger" data-cursor="hover">VJ.</a>
+        <div class="hidden md:flex gap-8 text-sm font-medium tracking-widest uppercase">
+            <a href="#work" class="hover:text-gray-400 hover-trigger transition-colors" data-cursor="hover">Work</a>
+            <a href="#about" class="hover:text-gray-400 hover-trigger transition-colors" data-cursor="hover">About</a>
+            <a href="#contact" class="hover:text-gray-400 hover-trigger transition-colors" data-cursor="hover">Contact</a>
+        </div>
+        <button class="md:hidden text-white hover-trigger" data-cursor="hover">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative h-screen w-full flex items-center justify-center overflow-hidden">
+        <canvas id="hero-canvas"></canvas>
+        
+        <div class="relative z-10 text-center px-4 mix-blend-exclusion">
+            <p class="text-sm md:text-base tracking-[0.5em] uppercase mb-4 opacity-0 translate-y-10 animate-in">Creative Technologist</p>
+            <h1 class="text-6xl md:text-9xl font-black tracking-tighter mb-6 opacity-0 translate-y-10 animate-in">
+                VEDANSH<br>JAIN
+            </h1>
+            <div class="flex justify-center gap-4 mt-8 opacity-0 translate-y-10 animate-in">
+                <a href="#work" class="magnetic-btn px-8 py-3 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 hover-trigger" data-cursor="hover">
+                    View Work
+                </a>
+                <a href="#contact" class="magnetic-btn px-8 py-3 bg-white text-black rounded-full hover:bg-gray-200 transition-all duration-300 hover-trigger" data-cursor="hover">
+                    Let's Talk
+                </a>
+            </div>
+        </div>
+
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+            <span class="text-[10px] uppercase tracking-widest">Scroll</span>
+            <div class="w-[1px] h-12 bg-gradient-to-b from-white to-transparent"></div>
+        </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <div class="py-10 border-y border-white/10 bg-white/5 overflow-hidden">
+        <div class="flex whitespace-nowrap animate-marquee">
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-20">DESIGN</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-100">•</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-20">DEVELOP</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-100">•</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-20">DEPLOY</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-100">•</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-20">DESIGN</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-100">•</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-20">DEVELOP</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-100">•</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-20">DEPLOY</span>
+            <span class="text-4xl md:text-6xl font-bold mx-8 opacity-100">•</span>
+        </div>
+    </div>
+
+    <!-- Selected Work -->
+    <section id="work" class="py-32 px-6 md:px-20 relative">
+        <div class="flex justify-between items-end mb-20">
+            <h2 class="text-5xl md:text-7xl font-bold">Selected<br>Works</h2>
+            <p class="hidden md:block max-w-xs text-right text-gray-400">A curation of projects that define my journey through code and creativity.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <!-- Project 1 -->
+            <div class="group relative h-[500px] w-full overflow-hidden rounded-2xl hover-trigger" data-cursor="hover">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-60"></div>
+                <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" alt="Project 1" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <div class="absolute bottom-0 left-0 p-8 z-20">
+                    <p class="text-sm text-gray-400 mb-2">01 / Web Design</p>
+                    <h3 class="text-3xl font-bold mb-2">Neon Genesis</h3>
+                    <p class="text-gray-300 max-w-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0">
+                        An immersive 3D web experience built with Three.js and React, exploring the boundaries of digital art.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Project 2 -->
+            <div class="group relative h-[500px] w-full overflow-hidden rounded-2xl mt-0 md:mt-20 hover-trigger" data-cursor="hover">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-60"></div>
+                <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2670&auto=format&fit=crop" alt="Project 2" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <div class="absolute bottom-0 left-0 p-8 z-20">
+                    <p class="text-sm text-gray-400 mb-2">02 / Branding</p>
+                    <h3 class="text-3xl font-bold mb-2">Cyber Void</h3>
+                    <p class="text-gray-300 max-w-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0">
+                        Brand identity for a futuristic tech startup focusing on AI and neural networks.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Project 3 -->
+            <div class="group relative h-[500px] w-full overflow-hidden rounded-2xl hover-trigger" data-cursor="hover">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-60"></div>
+                <img src="https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=2576&auto=format&fit=crop" alt="Project 3" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <div class="absolute bottom-0 left-0 p-8 z-20">
+                    <p class="text-sm text-gray-400 mb-2">03 / Development</p>
+                    <h3 class="text-3xl font-bold mb-2">Flux Architecture</h3>
+                    <p class="text-gray-300 max-w-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0">
+                        A real-time data visualization dashboard for financial markets.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Project 4 -->
+            <div class="group relative h-[500px] w-full overflow-hidden rounded-2xl mt-0 md:mt-20 hover-trigger" data-cursor="hover">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-60"></div>
+                <img src="https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?q=80&w=2670&auto=format&fit=crop" alt="Project 4" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <div class="absolute bottom-0 left-0 p-8 z-20">
+                    <p class="text-sm text-gray-400 mb-2">04 / Interaction</p>
+                    <h3 class="text-3xl font-bold mb-2">Liquid Motion</h3>
+                    <p class="text-gray-300 max-w-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0">
+                        Experimental physics engine for interactive web fluids.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-32 px-6 md:px-20 bg-white text-black relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-200 to-blue-200 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2"></div>
+        <div class="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-yellow-200 to-pink-200 rounded-full blur-3xl opacity-30 translate-y-1/2 -translate-x-1/2"></div>
+
+        <div class="relative z-10 max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+                <div class="lg:col-span-7">
+                    <p class="text-sm font-bold tracking-widest uppercase mb-4 text-gray-500">About Me</p>
+                    <h2 class="text-5xl md:text-7xl font-bold mb-8 leading-none">
+                        DIGITAL<br>ALCHEMIST
+                    </h2>
+                    <div class="w-20 h-1 bg-black mb-8"></div>
+                    <p class="text-xl md:text-2xl font-light leading-relaxed mb-8 text-gray-800">
+                        I craft digital experiences that merge art with engineering. With a background in both design and computer science, I bridge the gap between aesthetics and functionality.
+                    </p>
+                    <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+                        Currently based in the digital realm, I specialize in creating immersive web experiences that push the boundaries of what's possible in the browser.
+                    </p>
+                </div>
+
+                <div class="lg:col-span-5 space-y-8">
+                    <div class="relative w-full aspect-square max-w-sm mx-auto lg:mx-0">
+                        <div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-700 morph-shape opacity-10"></div>
+                        <div class="absolute inset-4 bg-gradient-to-br from-gray-800 to-black morph-shape flex items-center justify-center" style="animation-delay: -2s;">
+                            <span class="text-white text-6xl font-bold">VJ</span>
+                        </div>
+                        <div class="absolute -bottom-4 -right-4 w-32 h-32 bg-black text-white rounded-full flex items-center justify-center animate-spin-slow shadow-2xl">
+                            <svg viewBox="0 0 100 100" width="80" height="80">
+                                <defs>
+                                    <path id="circle" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                                </defs>
+                                <text font-size="11.5" font-weight="bold" letter-spacing="2.5">
+                                    <textPath xlink:href="#circle">
+                                        AVAILABLE FOR WORK • AVAILABLE FOR WORK •
+                                    </textPath>
+                                </text>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6 pt-8">
+                        <div class="border-t border-black/10 pt-4">
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Stack</h4>
+                            <ul class="space-y-2 text-sm font-medium">
+                                <li>React / Next.js</li>
+                                <li>Three.js / WebGL</li>
+                                <li>Tailwind / GSAP</li>
+                                <li>Node.js / Python</li>
+                            </ul>
+                        </div>
+                        <div class="border-t border-black/10 pt-4">
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Services</h4>
+                            <ul class="space-y-2 text-sm font-medium">
+                                <li>Web Development</li>
+                                <li>UI/UX Design</li>
+                                <li>Creative Coding</li>
+                                <li>Brand Strategy</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills / Stats -->
+    <section class="py-20 border-b border-white/10">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 px-6 md:px-20">
+            <div class="text-center">
+                <h3 class="text-5xl font-bold mb-2 text-outline counter" data-target="5">0</h3>
+                <p class="text-sm uppercase tracking-widest text-gray-400">Years Experience</p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-5xl font-bold mb-2 text-outline counter" data-target="42">0</h3>
+                <p class="text-sm uppercase tracking-widest text-gray-400">Projects Done</p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-5xl font-bold mb-2 text-outline counter" data-target="12">0</h3>
+                <p class="text-sm uppercase tracking-widest text-gray-400">Awards Won</p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-5xl font-bold mb-2 text-outline counter" data-target="99">0</h3>
+                <p class="text-sm uppercase tracking-widest text-gray-400">% Satisfaction</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section with Working Form -->
+    <section id="contact" class="py-32 px-6 md:px-20 min-h-screen flex flex-col justify-center relative overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[20vw] font-bold text-white/5 pointer-events-none select-none">
+            HELLO
+        </div>
+        
+        <div class="relative z-10 max-w-4xl mx-auto w-full">
+            <p class="text-center text-gray-400 mb-4 tracking-widest uppercase">Got a project in mind?</p>
+            <h2 class="text-5xl md:text-8xl font-bold text-center mb-12">
+                Let's create<br>something <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">epic</span>
+            </h2>
+
+            <!-- Contact Form using Web3Forms -->
+            <form id="contact-form" action="https://api.web3forms.com/submit" method="POST" class="space-y-6">
+                <!-- Web3Forms Access Key -->
+                <input type="hidden" name="access_key" value="e30d8403-0fae-4e7b-9fbb-d32dede41cd9">
+                
+                <!-- Email Configuration -->
+                <input type="hidden" name="from_name" value="Vedansh Jain Portfolio">
+                <input type="hidden" name="subject" value="New Contact Form Submission">
+                <input type="hidden" name="redirect" value="https://web3forms.com/success">
+                
+                <!-- Honeypot -->
+                <input type="checkbox" name="botcheck" class="hidden" style="display: none;">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="group">
+                        <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2 group-focus-within:text-white transition-colors">Name *</label>
+                        <input type="text" name="name" required class="form-input w-full bg-transparent border-b border-gray-700 py-4 text-xl text-white focus:border-white transition-colors hover-trigger" placeholder="John Doe" data-cursor="hover">
+                    </div>
+                    <div class="group">
+                        <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2 group-focus-within:text-white transition-colors">Email *</label>
+                        <input type="email" name="email" required class="form-input w-full bg-transparent border-b border-gray-700 py-4 text-xl text-white focus:border-white transition-colors hover-trigger" placeholder="john@example.com" data-cursor="hover">
+                    </div>
+                </div>
+                
+                <div class="group">
+                    <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2 group-focus-within:text-white transition-colors">Subject</label>
+                    <input type="text" name="subject" class="form-input w-full bg-transparent border-b border-gray-700 py-4 text-xl text-white focus:border-white transition-colors hover-trigger" placeholder="Project Inquiry" data-cursor="hover">
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2 group-focus-within:text-white transition-colors">Message *</label>
+                    <textarea name="message" rows="4" required class="form-input w-full bg-transparent border-b border-gray-700 py-4 text-xl text-white focus:border-white transition-colors resize-none hover-trigger" placeholder="Tell me about your project..." data-cursor="hover"></textarea>
+                </div>
+
+                <!-- Success Message -->
+                <div id="success-message" class="form-message hidden bg-green-500/20 border border-green-500/50 text-green-400 px-6 py-4 rounded-lg text-center">
+                    <p class="font-medium">✓ Message sent successfully! I'll get back to you soon.</p>
+                </div>
+
+                <!-- Error Message -->
+                <div id="error-message" class="form-message hidden bg-red-500/20 border border-red-500/50 text-red-400 px-6 py-4 rounded-lg text-center">
+                    <p class="font-medium">✗ Something went wrong. Please try again or email me directly.</p>
+                </div>
+
+                <div class="pt-8 text-center">
+                    <button type="submit" id="submit-btn" class="magnetic-btn inline-flex items-center gap-3 px-10 py-5 bg-white text-black rounded-full text-lg font-bold hover:bg-gray-200 transition-all hover-trigger disabled:opacity-50 disabled:cursor-not-allowed" data-cursor="hover">
+                        <span id="btn-text">Send Message</span>
+                        <span id="btn-spinner" class="spinner hidden"></span>
+                        <svg id="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-12 text-center">
+                <p class="text-gray-500 text-sm mb-4">Or reach me directly at</p>
+                <a href="mailto:vedanshjan.silt@gmail.com" class="text-xl hover:text-white transition-colors hover-trigger" data-cursor="hover">vedanshjan.silt@gmail.com</a>
+            </div>
+
+            <div class="mt-12 flex justify-center gap-8">
+                <a href="#" class="text-gray-400 hover:text-white transition-colors hover-trigger" data-cursor="hover">Twitter</a>
+                <a href="#" class="text-gray-400 hover:text-white transition-colors hover-trigger" data-cursor="hover">LinkedIn</a>
+                <a href="#" class="text-gray-400 hover:text-white transition-colors hover-trigger" data-cursor="hover">GitHub</a>
+                <a href="#" class="text-gray-400 hover:text-white transition-colors hover-trigger" data-cursor="hover">Dribbble</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-8 text-center text-gray-600 text-sm">
+        <p>&copy; 2024 Vedansh Jain. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Register GSAP
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Custom Cursor Logic
+        const cursor = document.getElementById('cursor');
+        const hoverTriggers = document.querySelectorAll('.hover-trigger');
+
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        hoverTriggers.forEach(trigger => {
+            trigger.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
+            trigger.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
+        });
+
+        // Hero Animations
+        gsap.to('.animate-in', {
+            y: 0,
+            opacity: 1,
+            duration: 1.5,
+            stagger: 0.2,
+            ease: "power4.out",
+            delay: 0.5
+        });
+
+        // WebGL Fluid Simulation
+        const canvas = document.getElementById('hero-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2;
+                this.color = `rgba(${Math.random() > 0.5 ? '100, 200, 255' : '200, 100, 255'}, ${Math.random() * 0.5})`;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 100; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+            
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            
+            particles.forEach((p1, i) => {
+                particles.slice(i + 1).forEach(p2 => {
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 - dist/1500})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                });
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Magnetic Buttons
+        const magneticBtns = document.querySelectorAll('.magnetic-btn');
+        magneticBtns.forEach(btn => {
+            btn.addEventListener('mousemove', (e) => {
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translate(0, 0)';
+            });
+        });
+
+        // Scroll Animations
+        gsap.utils.toArray('.group').forEach((elem, i) => {
+            gsap.from(elem, {
+                scrollTrigger: {
+                    trigger: elem,
+                    start: "top 80%",
+                },
+                y: 50,
+                opacity: 0,
+                duration: 1,
+                delay: i * 0.1
+            });
+        });
+
+        // Counter Animation
+        const counters = document.querySelectorAll('.counter');
+        counters.forEach(counter => {
+            const target = +counter.getAttribute('data-target');
+            gsap.to(counter, {
+                innerHTML: target,
+                duration: 2,
+                snap: { innerHTML: 1 },
+                scrollTrigger: {
+                    trigger: counter,
+                    start: "top 85%",
+                }
+            });
+        });
+
+        // Marquee Animation
+        gsap.to(".animate-marquee", {
+            xPercent: -50,
+            repeat: -1,
+            duration: 20,
+            ease: "linear"
+        });
+
+        // Smooth Scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Form Handling with Web3Forms
+        const form = document.getElementById('contact-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const btnIcon = document.getElementById('btn-icon');
+        const successMsg = document.getElementById('success-message');
+        const errorMsg = document.getElementById('error-message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            btnText.textContent = 'Sending...';
+            btnSpinner.classList.remove('hidden');
+            btnIcon.classList.add('hidden');
+            
+            // Hide previous messages
+            successMsg.classList.remove('show');
+            errorMsg.classList.remove('show');
+            successMsg.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+
+            const formData = new FormData(form);
+            const object = Object.fromEntries(formData);
+            const json = JSON.stringify(object);
+
+            try {
+                const response = await fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: json
+                });
+
+                const result = await response.json();
+
+                if (response.status == 200) {
+                    // Success
+                    successMsg.classList.remove('hidden');
+                    setTimeout(() => successMsg.classList.add('show'), 10);
+                    form.reset();
+                } else {
+                    console.log(result);
+                    throw new Error(result.message || 'Form submission failed');
+                }
+            } catch (error) {
+                console.error(error);
+                // Error
+                errorMsg.classList.remove('hidden');
+                setTimeout(() => errorMsg.classList.add('show'), 10);
+            } finally {
+                // Reset button
+                submitBtn.disabled = false;
+                btnText.textContent = 'Send Message';
+                btnSpinner.classList.add('hidden');
+                btnIcon.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
